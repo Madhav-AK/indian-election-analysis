@@ -393,19 +393,64 @@ def fig_13_contestants_share_by_const_type_pie(df_by_type: pd.DataFrame) -> go.F
     fig.update_layout(margin=dict(l=10, r=10, t=60, b=10))
     return fig
 
+def fig_14_total_women_elected_by_const_type_bar(
+    df_by_type: pd.DataFrame, 
+    denom_col: str | None = None
+) -> go.Figure:
+    """
+    Proportion of women elected by constituency (caste) type.
+    Normalizes women_elected by a total per const_type.
+    
+    Parameters
+    ----------
+    df_by_type : DataFrame
+        Must include at least: ['const_type', 'women_elected'] and one of the
+        denominator columns listed below (or pass denom_col explicitly).
+    denom_col : str | None
+        Column to use as denominator. If None, the function will try (in order):
+        ['total_elected','elected','total_seats','seats',
+         'total_contesting','total_candidates','contestants'].
+    """
+    if denom_col is None:
+        candidates = [
+            'total_elected', 'elected', 'total_seats', 'seats',
+            'total_contesting', 'total_candidates', 'contestants'
+        ]
+        denom_col = next((c for c in candidates if c in df_by_type.columns), None)
+        if denom_col is None:
+            raise ValueError(
+                "Could not infer a denominator column. "
+                "Pass denom_col explicitly (e.g., 'total_elected')."
+            )
 
-def fig_14_total_women_elected_by_const_type_bar(df_by_type: pd.DataFrame) -> go.Figure:
-    """Total women elected aggregated by constituency type (bar)."""
-    grouped = df_by_type.groupby('const_type', as_index=False)['women_elected'].sum()
-    fig = px.bar(
-        grouped, x='const_type', y='women_elected',
-        title='Total Women Elected by Constituency Type (All States)',
-        labels={'women_elected': 'Women Elected', 'const_type': 'Constituency Type'},
-        template='plotly_dark'
+    # Aggregate by constituency type
+    grouped = (
+        df_by_type
+        .groupby('const_type', as_index=False)
+        .agg({'women_elected': 'sum', denom_col: 'sum'})
+        .rename(columns={denom_col: 'denom_total'})
     )
+
+    # Compute normalized ratio; handle divide-by-zero safely
+    grouped['women_ratio'] = grouped.apply(
+        lambda r: (r['women_elected'] / r['denom_total']) if r['denom_total'] not in (0, None) else float('nan'),
+        axis=1
+    )
+
+    # Build bar chart
+    fig = px.bar(
+        grouped,
+        x='const_type',
+        y='women_ratio',
+        title='Proportion of Women Elected by Constituency (Caste) Type',
+        labels={'women_ratio': 'Women Elected (%)', 'const_type': 'Constituency Type'},
+        template='plotly_dark',
+        text=grouped['women_ratio'].map(lambda v: f"{v:.1%}" if pd.notna(v) else "")
+    )
+
+    fig.update_yaxes(tickformat=".0%", rangemode="tozero")
     fig.update_layout(margin=dict(l=10, r=10, t=60, b=10))
     return fig
-
 
 def fig_15_state_success_rate_bar(df_state_total: pd.DataFrame, top_n: int = 10) -> go.Figure:
     """Top-N states/UTs by women candidate success rate % (Elected / Contestants)."""
@@ -843,7 +888,7 @@ def fig_32_vote_share_by_gender_box_all_candidates(df_candidates: pd.DataFrame, 
         df_candidates,
         x='gender', y='pct_over_polled', color='gender',
         points='outliers', notched=False,
-        title='Vote Share (%) Distribution by Gender (All Candidates)',
+        title='Vote Share (%) Distribution by Gender [Note: Y axis is log scale]',
         labels={'gender': 'Gender', 'pct_over_polled': 'Vote Share Secured (%)'},
         template='plotly_dark'
     )
@@ -1064,32 +1109,56 @@ def fig_36_forfeited_by_gender_caste_dropdown(gender_long: pd.DataFrame, state_l
 
 
 def fig_37_rejection_rate_heatmap_state_caste(totals: pd.DataFrame) -> go.Figure:
-    """Heatmap: RejectionRate (Rejected / Filed) by State × ConstituencyType."""
-    heat = totals.pivot_table(index="State", columns="ConstituencyType", values="RejectionRate", aggfunc="mean")
-    heat = heat.reindex(columns=["GEN", "SC", "ST"])
-    heat['mean_rate'] = heat.mean(axis=1)
-    heat = heat.sort_values('mean_rate', ascending=False)
-    heat = heat.drop(columns=['mean_rate'])
+    """Clean, compact Heatmap: RejectionRate (Rejected / Filed) by State × ConstituencyType."""
+    # Pivot data
+    heat = totals.pivot_table(
+        index="State",
+        columns="ConstituencyType",
+        values="RejectionRate",
+        aggfunc="mean"
+    )
+
+    # Ensure all columns exist
+    for col in ["GEN", "SC", "ST"]:
+        if col not in heat.columns:
+            heat[col] = float("nan")
+
+    # Sort by mean rate
+    heat = heat[["GEN", "SC", "ST"]]
+    heat["mean_rate"] = heat.mean(axis=1, skipna=True)
+    heat = heat.sort_values("mean_rate", ascending=False).drop(columns=["mean_rate"])
+
+    # Compact dimensions
     num_states = len(heat.index)
-    calculated_height = max(500, num_states * 25 + 150)
-    
+    calculated_height = max(350, num_states * 12 + 120)
+    calculated_width = 750
+
+    # Plot heatmap
     fig = px.imshow(
         heat,
         labels=dict(x="Constituency Type", y="State", color="Rejection Rate"),
-        x=heat.columns, 
-        y=heat.index, 
-        title="Rejection Rate Heatmap (Sorted by Average Rate)", 
-        color_continuous_scale='Reds' 
+        x=["GEN", "SC", "ST"],
+        y=heat.index,
+        title="Rejection Rate Heatmap (Sorted by Average Rate)",
+        color_continuous_scale="Reds",
+        aspect="auto",
     )
-    
+
+    # Style cleanup
     fig.update_coloraxes(colorbar_title="Rate")
     fig.update_layout(
         height=calculated_height,
-        template="plotly_dark" 
+        width=calculated_width,
+        template="plotly_dark",
+        margin=dict(l=40, r=40, t=50, b=60),
     )
-    fig.update_yaxes(categoryorder='array', categoryarray=heat.index)
+
+    # ✅ Remove background grid and axis lines
+    fig.update_xaxes(showgrid=False, zeroline=False, tickangle=0, tickfont=dict(size=12))
+    fig.update_yaxes(showgrid=False, zeroline=False, categoryorder="array", categoryarray=heat.index)
 
     return fig
+
 
 
 def fig_38_nom_to_contest_ratio_vs_contestants_per_seat_scatter(totals: pd.DataFrame) -> go.Figure:
@@ -1155,16 +1224,51 @@ def fig_39_nomination_flow_sankey_dropdown(totals: pd.DataFrame, state_list: lis
     return fig
 
 
-def fig_40_contestants_per_seat_heatmap(totals: pd.DataFrame, height: int = 900) -> go.Figure:
-    """Heatmap: Contestants per Seat by State × ConstituencyType."""
-    cps = totals.pivot_table(index="State", columns="ConstituencyType", values="ContestantsPerSeat", aggfunc="mean")
-    cps = cps.reindex(columns=["GEN", "SC", "ST"])
+def fig_40_contestants_per_seat_heatmap(totals: pd.DataFrame, width: int = 750) -> go.Figure:
+    """Clean, compact Heatmap: Contestants per Seat by State × ConstituencyType."""
+    # Pivot
+    cps = totals.pivot_table(
+        index="State",
+        columns="ConstituencyType",
+        values="ContestantsPerSeat",
+        aggfunc="mean"
+    )
+
+    # Ensure all three columns exist
+    for col in ["GEN", "SC", "ST"]:
+        if col not in cps.columns:
+            cps[col] = float("nan")
+
+    # Order & sort by mean for nicer ranking
+    cps = cps[["GEN", "SC", "ST"]]
+    cps["__mean"] = cps.mean(axis=1, skipna=True)
+    cps = cps.sort_values("__mean", ascending=False).drop(columns="__mean")
+
+    # Compact height based on number of states
+    num_states = len(cps.index)
+    height = max(350, num_states * 12 + 120)  # thinner vertical profile
+
+    # Plot
     fig = px.imshow(
         cps,
         labels=dict(x="Constituency Type", y="State", color="Contestants / Seat"),
-        title="Contestants per Seat — Heatmap"
+        x=["GEN", "SC", "ST"],
+        y=cps.index,
+        title="Contestants per Seat — Heatmap",
+        color_continuous_scale="Reds",
+        aspect="auto",
     )
-    fig.update_layout(height=height)
+
+    # Style: dark theme, generous bottom margin, no grids
+    fig.update_layout(
+        height=height,
+        width=width,
+        template="plotly_dark",
+        margin=dict(l=40, r=40, t=50, b=60),
+    )
+    fig.update_xaxes(showgrid=False, zeroline=False, tickangle=0, tickfont=dict(size=12))
+    fig.update_yaxes(showgrid=False, zeroline=False, categoryorder="array", categoryarray=cps.index)
+
     return fig
 
 
@@ -1508,7 +1612,7 @@ def fig_54_state_funnel_nominations_contestants_fd_dropdown(state_agg: pd.DataFr
             args=[{"x":[fun_frames[st]]}, {"title": f"State Funnel — {st}"}]
         ))
     fig.update_layout(
-        title=f"State Funnel — {init_state}",
+        title=f"State Funnel",
         updatemenus=[dict(type="dropdown", x=1.12, y=1.0, xanchor="left", buttons=buttons, showactive=True)],
         margin=dict(r=160), template="plotly_dark"
     )

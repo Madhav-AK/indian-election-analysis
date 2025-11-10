@@ -516,8 +516,9 @@ def plot_voter_deviation_map(
 ):
     """
     Calculates and plots the percentage deviation of voters for each constituency
-    from its state's average.
+    from the national average (across all constituencies).
     """
+
     # Copies to avoid warnings
     df_const_copy = df_const.copy()
     gdf_copy = gdf.copy()
@@ -529,25 +530,21 @@ def plot_voter_deviation_map(
     df_const_copy["Total Voters"] = pd.to_numeric(df_const_copy["Total Voters"], errors="coerce")
     df_const_copy = df_const_copy.dropna(subset=["Total Voters", "STATE_NAME", "PC_NAME"])
 
-    # State mean
-    df_state_mean = df_const_copy.groupby("STATE_NAME", as_index=False)["Total Voters"].mean()
-    df_state_mean = df_state_mean.rename(columns={"Total Voters": "State Mean Voters"})
+    # National mean
+    national_mean = df_const_copy["Total Voters"].mean()
 
-    # Merge mean into PC data
-    df_analysis = df_const_copy.merge(df_state_mean, on="STATE_NAME", how="left")
-
-    # % deviation
-    df_analysis["Voter Deviation %"] = 100.0 * (
-        (df_analysis["Total Voters"] - df_analysis["State Mean Voters"]) / df_analysis["State Mean Voters"]
+    # % deviation from national mean
+    df_const_copy["Voter Deviation %"] = 100.0 * (
+        (df_const_copy["Total Voters"] - national_mean) / national_mean
     )
-    df_analysis["Voter Deviation %"] = df_analysis["Voter Deviation %"].replace([np.inf, -np.inf], np.nan)
+    df_const_copy["Voter Deviation %"] = df_const_copy["Voter Deviation %"].replace([np.inf, -np.inf], np.nan)
 
     # Merge to shapes
-    gdf_plot = gdf_copy.merge(df_analysis[["PC_NAME", "Voter Deviation %"]], on="PC_NAME", how="left")
+    gdf_plot = gdf_copy.merge(df_const_copy[["PC_NAME", "Voter Deviation %"]], on="PC_NAME", how="left")
 
     # Diagnostics
     report_merge_diagnostics(
-        gdf_copy, df_analysis, "PC_NAME", map_name="GeoJSON (Turnout Mapped)", data_name="Voter Data CSV"
+        gdf_copy, df_const_copy, "PC_NAME", map_name="GeoJSON (Turnout Mapped)", data_name="Voter Data CSV"
     )
 
     # Plot
@@ -558,6 +555,7 @@ def plot_voter_deviation_map(
         max_abs_dev = 100.0
 
     norm = mcolors.TwoSlopeNorm(vmin=-max_abs_dev, vcenter=0, vmax=max_abs_dev)
+
     gdf_plot.plot(
         column="Voter Deviation %",
         ax=ax,
@@ -571,17 +569,18 @@ def plot_voter_deviation_map(
             "label": "Data Not Available",
         },
         legend_kwds={
-            "label": "% Deviation from State Average Voters",
+            "label": "% Deviation from National Average Voters",
             "orientation": "horizontal",
             "pad": 0.05,
             "shrink": 0.7,
         },
     )
 
-    ax.set_title("Voter Number Deviation from State Mean", fontdict={"fontsize": 18, "fontweight": "bold"})
+    ax.set_title("Voter Number Deviation from National Mean", fontdict={"fontsize": 18, "fontweight": "bold"})
     ax.set_axis_off()
     plt.tight_layout()
     return fig
+
 
 
 # -----------------------------

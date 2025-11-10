@@ -509,7 +509,7 @@ footer = html.Div(
     [
         html.Hr(className="section-divider"),
         html.Div(
-            "Dark dashboard • Dash + Plotly • All figures from your wp/everything2 modules",
+            "Indian Election Dashboard",
             className="text-muted",
             style={"fontSize": ".9rem"},
         ),
