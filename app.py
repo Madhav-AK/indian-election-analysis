@@ -178,6 +178,7 @@ file_6 = "data/StatewiseCandidateData.csv"
 file_7 = "data/ConstituencyWiseSummary.csv"
 file_7_2 = "data/ConstituencyWiseSummary2.csv"
 file_8 = "data/CandidatesPerConstituency.csv"
+file_assets = "data/LokSabhaAssetComparison.csv" 
 
 df_women = india_elections_figures.load_women_participation_excel(file_23)
 df_state_total, df_by_type = india_elections_figures.load_women_candidates_excel(file_24)
@@ -193,10 +194,12 @@ state_agg7_geo = india_elections_figures.attach_india_centroids(state_agg7)
 
 df8, df8_long, df8_geo = india_elections_figures.load_candidate_distribution_csv8(file_8)
 
+df_assets = india_elections_figures.load_asset_comparison_csv(file_assets)
+
 
 # Build and cache MAP CARDS (interleaved later)
 try:
-    FEATURE_FILE = "geo_utils/kaziranga.txt"
+    FEATURE_FILE = "indian-election-analysis-main/geo_utils/india_pc_2024_simplified.geojson"
     gdf = india_election_maps.load_geojson(feature_to_add_file=FEATURE_FILE)
     df_const = india_election_maps._prepare_voter_csv_for_deviation(file_7_2)
 
@@ -259,18 +262,14 @@ results_cards_ages = [
     safe_make_plotly("26. Winner Age by Party (Top 10) — Violin", india_elections_figures.fig_26_winner_age_by_party_violin_top10, df_results),
     safe_make_plotly("31. ALL Candidates Age — Violin (Top 10 Parties)", india_elections_figures.fig_31_candidate_age_violin_top10_parties, df_candidates),
 ]
-results_cards_perf = [
-    safe_make_plotly("30. Winner vs Runner-Up Vote Share — Scatter", india_elections_figures.fig_30_winner_vs_runner_vote_share_scatter, df_results),
-    safe_make_plotly("34. Sunburst: All Candidates (Party → Category → Gender)", india_elections_figures.fig_34_sunburst_all_candidates_party_category_gender, df_candidates),
-]
+# Removed Plot 34 from here; also remove this whole row to keep rows strictly 2-up
 results_cards_maps_top = [
     card_alliance_map,
     card_margin_map,
 ]
-results_cards_maps_bottom = [
-    card_nota_map,
-]
+# Removed single NOTA map row from Results; moved to Experimental to keep rows 2-up
 
+# Nominations
 nom_cards_heat_sankey = [
     safe_make_plotly("37. Rejection Rate Heatmap (Rejected/Filed)", india_elections_figures.fig_37_rejection_rate_heatmap_state_caste, totals6),
     safe_make_plotly("39. Nomination Flow Sankey — State Dropdown", india_elections_figures.fig_39_nomination_flow_sankey_dropdown, totals6, state_list6),
@@ -284,6 +283,7 @@ nom_cards_misc = [
     safe_make_plotly("46. Gender Gap in Contesting — (M − F) / TOTAL — GEN", india_elections_figures.fig_46_gender_gap_contesting_bar_by_caste, gender_long6),
 ]
 
+# Turnout
 turnout_cards_top = [
     safe_make_plotly("49. Turnout Leaderboard — Weighted by Electors (State)", india_elections_figures.fig_49_state_weighted_vtr_leaderboard_bar, state_agg7),
     safe_make_plotly("54. State Funnel — Nominations → Contestants → FD", india_elections_figures.fig_54_state_funnel_nominations_contestants_fd_dropdown, state_agg7),
@@ -293,9 +293,15 @@ turnout_cards_corr = [
     safe_make_plotly("60. Turnout Distributions: Top-6 vs Bottom-6 (PC-level)", india_elections_figures.fig_60_violin_turnout_top6_bottom6, df7, state_agg7),
 ]
 
+# Distribution
 dist_cards = [
     safe_make_plotly("69. Constituency Count Range Distribution (per State/UT)", india_elections_figures.fig_69_candidate_bucket_distribution_stackedbar, df8_long),
     safe_make_plotly("70. Ranking by Avg Candidates per Constituency", india_elections_figures.fig_70_avg_candidates_ranking_bar, df8),
+]
+
+# Assets
+asset_cards = [
+    safe_make_plotly("73. Top 10 Asset Increases & Decreases", india_elections_figures.fig_73_asset_increase_decrease_bar, df_assets)
 ]
 
 # Cool / Experimental
@@ -322,6 +328,11 @@ cool_cards_5 = [
 cool_cards_6 = [
     safe_make_plotly("55. Treemap — Electors: State → PC (color = VTR)", india_elections_figures.fig_55_treemap_electors_state_pc_color_vtr, df7),
     safe_make_plotly("71. Avg vs Max Candidates — Bubble ~ Total", india_elections_figures.fig_71_avg_vs_max_candidates_scatter, df8),
+]
+# New pair to keep 2-per-row: moved Plot 34 + NOTA Map here
+cool_cards_7 = [
+    safe_make_plotly("34. Sunburst: All Candidates (Party → Category → Gender)", india_elections_figures.fig_34_sunburst_all_candidates_party_category_gender, df_candidates),
+    card_nota_map,
 ]
 
 
@@ -377,15 +388,6 @@ header = dbc.Navbar(
     className="navbar-dark"
 )
 
-intro = dbc.Alert(
-    textwrap.dedent("""
-    Dark, bold, and focused. Sections are capped at **two charts per row** for clarity.
-    Use the tabs to jump domains; subsections separate related views.
-    """).strip(),
-    color="dark",
-    className="mt-3 bg-dark-2 text-light shadow-soft",
-)
-
 tabs = dbc.Tabs(
     [
         dbc.Tab(
@@ -430,12 +432,10 @@ tabs = dbc.Tabs(
                 section("Constituency & Results", "Ages, performance, and composition"),
                 subsection("Age distributions"),
                 two_up_grid(results_cards_ages),
-                subsection("Performance & composition"),
-                two_up_grid(results_cards_perf),
                 subsection("Result geography"),
                 two_up_grid(results_cards_maps_top),
-                subsection("Ballot features"),
-                two_up_grid(results_cards_maps_bottom),
+                # Removed Performance & composition (single card after moving 34)
+                # Removed Ballot features (NOTA map moved to Experimental)
             ],
         ),
         dbc.Tab(
@@ -473,6 +473,18 @@ tabs = dbc.Tabs(
                 two_up_grid(dist_cards),
             ],
         ),
+        # --- NEW TAB ADDED HERE ---
+        dbc.Tab(
+            label="Assets of Candidates",
+            tab_id="tab-assets",
+            children=[
+                html.Br(),
+                section("Candidate Asset Changes", "Analysis of candidate wealth from asset comparison data"),
+                subsection("Top Increases and Decreases"),
+                two_up_grid(asset_cards),
+            ],
+        ),
+        # --- END OF NEW TAB ---
         dbc.Tab(
             label="Experimental / Cool",
             tab_id="tab-cool",
@@ -485,6 +497,7 @@ tabs = dbc.Tabs(
                 two_up_grid(cool_cards_4),
                 two_up_grid(cool_cards_5),
                 two_up_grid(cool_cards_6),
+                two_up_grid(cool_cards_7),  # includes moved Plot 34 + NOTA Map
             ],
         ),
     ],
@@ -505,7 +518,7 @@ footer = html.Div(
     className="mt-4",
 )
 
-app.layout = dbc.Container([header, intro, tabs, footer], fluid=True, className="px-4")
+app.layout = dbc.Container([header, tabs, footer], fluid=True, className="px-4")
 
 if __name__ == "__main__":
     app.run(debug=True)

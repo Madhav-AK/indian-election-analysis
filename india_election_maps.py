@@ -1,15 +1,14 @@
-# everything2.py — India map helpers & loaders (part 1)
 import json
 import re
 import warnings
 from typing import Dict, Optional
 
 import geopandas as gpd
-import matplotlib.colors as mcolors  # noqa: F401 (used later in plotting bits)
-import matplotlib.pyplot as plt       # noqa: F401
-import numpy as np                    # noqa: F401
+import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
-from shapely.geometry import MultiPolygon, Polygon  # noqa: F401
+from shapely.geometry import MultiPolygon, Polygon
 
 # Suppress noisy geopandas/future warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="geopandas")

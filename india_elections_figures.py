@@ -1,12 +1,9 @@
-# utils/women_participation_figs.py
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import re
 
-# -----------------------------
-# Data loading + cleaning
-# -----------------------------
 COLUMN_MAP = {
     'STATE/UT': 'state',
     'NO OF SEATS': 'num_seats',
@@ -216,10 +213,9 @@ def fig_7_women_elector_pct_vs_votes_pct_scatter(df: pd.DataFrame, trendline: st
             'women_votes_pct_of_total': '% of Total Votes Polled by Women'
         },
         template='plotly_dark',
-        size_max=16,          # upper cap for auto-scaling
+        size_max=16,
     )
 
-    # Manually enforce consistent large markers
     fig.update_traces(
         marker=dict(size=14, color='#66b3ff', line=dict(width=1, color='white')),
         selector=dict(mode='markers')
@@ -282,9 +278,7 @@ def fig_10_stacked_men_vs_women_electors_top15_by_seats(df: pd.DataFrame, top_n:
     return fig
 
 
-# -----------------------------
-# Women Candidates (Sheet 24)
-# -----------------------------
+# Women Candidates
 def load_women_candidates_excel(file_path: str):
     """
     Reads '24-Participation-of-Women-Candidates.xlsx' (skiprows=2),
@@ -339,8 +333,6 @@ def load_women_candidates_excel(file_path: str):
 
     return df_state_total.reset_index(drop=True), df_by_type.reset_index(drop=True)
 
-
-# --------- Figures 11–20 ---------
 
 def fig_11_top10_women_contestants(df_state_total: pd.DataFrame, top_n: int = 10) -> go.Figure:
     """Top-N states/UTs by number of women contestants (horizontal bar, clean labels)."""
@@ -530,10 +522,7 @@ def fig_20_fd_rate_histogram(df_state_total: pd.DataFrame, nbins: int = 15) -> g
     return fig
 
 
-
-# -----------------------------
-# Constituency-wise Detailed Results (Sheet 33)
-# -----------------------------
+# Constituency-wise Detailed Results
 
 def load_constituency_detailed_results_excel(file_path: str):
     """
@@ -542,9 +531,9 @@ def load_constituency_detailed_results_excel(file_path: str):
       - df_candidates : all candidate rows except NOTA (numeric coerced, essentials kept)
       - df_nota       : rows where party_name == 'NOTA'
       - df_results    : one row per (state, pc_name) for the winner, merged with runner-up to compute:
-            * margin_pct            = pct_over_polled_win - pct_over_polled_run
-            * voter_turnout_pct     = 100 * total_votes_in_pc / total_electors
-            * seat_count            = 1 (for treemaps)
+            * margin_pct           = pct_over_polled_win - pct_over_polled_run
+            * voter_turnout_pct    = 100 * total_votes_in_pc / total_electors
+            * seat_count           = 1 (for treemaps)
     Returns (df_candidates, df_nota, df_results).
     """
     raw = pd.read_excel(file_path, skiprows=2)
@@ -619,8 +608,6 @@ def load_constituency_detailed_results_excel(file_path: str):
 
     return df_candidates.reset_index(drop=True), df_nota.reset_index(drop=True), df_results.reset_index(drop=True)
 
-
-# --------- Figures 21–28 ---------
 
 def fig_21_winner_profile_5d_bubble(df_results: pd.DataFrame) -> go.Figure:
     """
@@ -746,10 +733,7 @@ def fig_28_independent_vote_share_histogram(df_candidates: pd.DataFrame, nbins: 
     fig.update_layout(margin=dict(l=10, r=10, t=70, b=10))
     return fig
 
-# -----------------------------
-# Constituency-wise (More Interesting Plots)
-# Helpers + Figures 29–34
-# -----------------------------
+# Constituency-wise
 
 def merge_nota_into_results(df_results: pd.DataFrame, df_nota: pd.DataFrame) -> pd.DataFrame:
     """
@@ -771,9 +755,6 @@ def top_n_parties(series_or_df, n: int = 10, party_col: str = 'party_name') -> l
     if isinstance(series_or_df, pd.Series):
         return series_or_df.value_counts().head(n).index.tolist()
     return series_or_df[party_col].value_counts().head(n).index.tolist()
-
-
-# --------- Figures 29–34 ---------
 
 def fig_29_margin_vs_turnout_density_heatmap(df_results: pd.DataFrame, nbinsx: int = 30, nbinsy: int = 30) -> go.Figure:
     """
@@ -910,12 +891,7 @@ def fig_34_sunburst_all_candidates_party_category_gender(df_candidates: pd.DataF
     fig.update_layout(margin=dict(l=10, r=10, t=70, b=10))
     return fig
 
-# -----------------------------
-# CSV "6.csv" — Nominations/Rejected/Withdrawn/Contesting/Forfeited
-# Figures 35–41
-# -----------------------------
 
-# ---- Loader + helpers ----
 def load_csv6_tidy(csv_path: str = "6.csv"):
     """
     Reads the CSV with repeating [M, F, TG, TOTAL] blocks for metrics:
@@ -1016,8 +992,6 @@ def _csv6_gender_agg(gender_long: pd.DataFrame, state: str, metric: str = "FORFE
     return g
 
 
-# ---- Figures 35–41 ----
-
 def fig_35_rejected_vs_accepted_by_caste_dropdown(totals: pd.DataFrame, state_list: list[str]) -> go.Figure:
     """Grouped bars: Accepted vs Rejected across constituency type; dropdown to switch state / ALL-INDIA."""
     frames = {st: _csv6_filter_state_totals(totals, st).sort_values(["ConstituencyType"]) for st in state_list}
@@ -1089,18 +1063,32 @@ def fig_36_forfeited_by_gender_caste_dropdown(gender_long: pd.DataFrame, state_l
     return fig
 
 
-def fig_37_rejection_rate_heatmap_state_caste(totals: pd.DataFrame, height: int = 900) -> go.Figure:
+def fig_37_rejection_rate_heatmap_state_caste(totals: pd.DataFrame) -> go.Figure:
     """Heatmap: RejectionRate (Rejected / Filed) by State × ConstituencyType."""
     heat = totals.pivot_table(index="State", columns="ConstituencyType", values="RejectionRate", aggfunc="mean")
     heat = heat.reindex(columns=["GEN", "SC", "ST"])
+    heat['mean_rate'] = heat.mean(axis=1)
+    heat = heat.sort_values('mean_rate', ascending=False)
+    heat = heat.drop(columns=['mean_rate'])
+    num_states = len(heat.index)
+    calculated_height = max(500, num_states * 25 + 150)
+    
     fig = px.imshow(
         heat,
         labels=dict(x="Constituency Type", y="State", color="Rejection Rate"),
-        x=heat.columns, y=heat.index,
-        title="Rejection Rate Heatmap (Rejected / Filed)"
+        x=heat.columns, 
+        y=heat.index, 
+        title="Rejection Rate Heatmap (Sorted by Average Rate)", 
+        color_continuous_scale='Reds' 
     )
+    
     fig.update_coloraxes(colorbar_title="Rate")
-    fig.update_layout(height=height)
+    fig.update_layout(
+        height=calculated_height,
+        template="plotly_dark" 
+    )
+    fig.update_yaxes(categoryorder='array', categoryarray=heat.index)
+
     return fig
 
 
@@ -1199,11 +1187,6 @@ def fig_41_rejected_share_top5_states_stacked(totals: pd.DataFrame) -> go.Figure
     return fig
 
 
-# -----------------------------
-# CSV "6.csv" — Impact-focused inter-state visuals
-# Figures 42–48
-# -----------------------------
-
 _CT_ORDER = ["GEN", "SC", "ST"]
 
 def _ensure_forfeiture_rate(df: pd.DataFrame) -> pd.DataFrame:
@@ -1216,7 +1199,7 @@ def _ensure_forfeiture_rate(df: pd.DataFrame) -> pd.DataFrame:
         )
     return df
 
-# ---------- 42 ----------
+
 def fig_42_state_leaderboard_metric_by_caste(
     totals: pd.DataFrame,
     metric: str = "RejectionRate",
@@ -1253,7 +1236,7 @@ def fig_42_state_leaderboard_metric_by_caste(
     fig.update_layout(margin=dict(r=40))
     return fig
 
-# ---------- 43 ----------
+
 def fig_43_dumbbell_filed_to_contesting_by_caste(totals: pd.DataFrame, constituency_type: str = "GEN") -> go.Figure:
     """
     Dumbbell plot comparing FILED vs CONTESTING per state for one constituency type.
@@ -1278,7 +1261,7 @@ def fig_43_dumbbell_filed_to_contesting_by_caste(totals: pd.DataFrame, constitue
     )
     return fig
 
-# ---------- 44 ----------
+
 def fig_44_impact_scatter_rejection_vs_forfeiture(totals: pd.DataFrame) -> go.Figure:
     """
     Scatter of RejectionRate vs ForfeitureRate, bubble size = FILED, colored by constituency type.
@@ -1294,7 +1277,7 @@ def fig_44_impact_scatter_rejection_vs_forfeiture(totals: pd.DataFrame) -> go.Fi
     fig.update_yaxes(tickformat=".0%", title="Forfeiture Rate")
     return fig
 
-# ---------- 45 ----------
+
 def fig_45_treemap_share_filed_color_rejectionrate(totals: pd.DataFrame) -> go.Figure:
     """
     Marimekko-like Treemap showing share of FILED by (ConstituencyType → State),
@@ -1313,7 +1296,7 @@ def fig_45_treemap_share_filed_color_rejectionrate(totals: pd.DataFrame) -> go.F
     fig.update_coloraxes(colorbar_title="Rejection Rate")
     return fig
 
-# ---------- 46 ----------
+
 def fig_46_gender_gap_contesting_bar_by_caste(gender_long: pd.DataFrame, constituency_type: str = "GEN") -> go.Figure:
     """
     Gender gap in Contesting: (M − F) / TOTAL by state for one constituency type.
@@ -1335,7 +1318,7 @@ def fig_46_gender_gap_contesting_bar_by_caste(gender_long: pd.DataFrame, constit
     fig.update_layout(margin=dict(r=40))
     return fig
 
-# ---------- 47 ----------
+
 def fig_47_pareto_forfeitures_by_state(totals: pd.DataFrame) -> go.Figure:
     """
     Pareto showing which states contribute most to FORFEITED counts.
@@ -1356,6 +1339,7 @@ def fig_47_pareto_forfeitures_by_state(totals: pd.DataFrame) -> go.Figure:
         showlegend=True, template="plotly_dark"
     )
     return fig
+
 
 def fig_48_withdrawn_rate_strip_by_caste(totals: pd.DataFrame) -> go.Figure:
     """
@@ -1389,10 +1373,6 @@ def fig_48_withdrawn_rate_strip_by_caste(totals: pd.DataFrame) -> go.Figure:
 
     return fig
 
-# -----------------------------
-# CSV "7.csv" — PC-level inter-state contrasts
-# Figures 49–60
-# -----------------------------
 
 def load_pc_level_csv7(csv_path: str = "7.csv"):
     """
@@ -1416,13 +1396,13 @@ def load_pc_level_csv7(csv_path: str = "7.csv"):
     df["VTR_frac"] = df["VTR (%)"] / 100.0
     df["ElectorsPerPS_calc"] = np.where(df["PS"]>0, df["Total Electors"]/df["PS"], np.nan)
     df["VotersPerPS"]         = np.where(df["PS"]>0, df["Total Voters"]/df["PS"], np.nan)
-    df["ContestantsPerPS"]    = np.where(df["PS"]>0, df["Contestants"]/df["PS"], np.nan)
-    df["NomsPerPS"]           = np.where(df["PS"]>0, df["Nominations"]/df["PS"], np.nan)
-    df["FD_Rate"]             = np.where(df["Contestants"]>0, df["FD"]/df["Contestants"], np.nan)
+    df["ContestantsPerPS"]   = np.where(df["PS"]>0, df["Contestants"]/df["PS"], np.nan)
+    df["NomsPerPS"]          = np.where(df["PS"]>0, df["Nominations"]/df["PS"], np.nan)
+    df["FD_Rate"]            = np.where(df["Contestants"]>0, df["FD"]/df["Contestants"], np.nan)
     df["Nom_to_Cont_Ratio"]   = np.where(df["Contestants"]>0, df["Nominations"]/df["Contestants"], np.nan)
-    df["VoterElectorGap"]     = df["Total Electors"] - df["Total Voters"]
-    df["GapRate"]             = 1.0 - df["VTR_frac"]
-    df["ContPerAC"]           = np.where(df["No Of AC Segments"]>0, df["Contestants"]/df["No Of AC Segments"], np.nan)
+    df["VoterElectorGap"]    = df["Total Electors"] - df["Total Voters"]
+    df["GapRate"]            = 1.0 - df["VTR_frac"]
+    df["ContPerAC"]          = np.where(df["No Of AC Segments"]>0, df["Contestants"]/df["No Of AC Segments"], np.nan)
 
     # State aggregates
     state_agg = df.groupby("State", as_index=False).agg(
@@ -1447,7 +1427,6 @@ def load_pc_level_csv7(csv_path: str = "7.csv"):
     return df, state_agg, top_states
 
 
-# ---------- 49 ----------
 def fig_49_state_weighted_vtr_leaderboard_bar(state_agg: pd.DataFrame) -> go.Figure:
     rank = state_agg.sort_values("WeightedVTR", ascending=False).copy()
     fig = px.bar(
@@ -1460,7 +1439,7 @@ def fig_49_state_weighted_vtr_leaderboard_bar(state_agg: pd.DataFrame) -> go.Fig
     fig.update_layout(yaxis_title="State")
     return fig
 
-# ---------- 50 ----------
+
 def fig_50_pc_vtr_distributions_top12_box(df: pd.DataFrame, top_states_by_electors: list[str]) -> go.Figure:
     box_df = df[df["State"].isin(top_states_by_electors)].copy()
     fig = px.box(
@@ -1472,7 +1451,7 @@ def fig_50_pc_vtr_distributions_top12_box(df: pd.DataFrame, top_states_by_electo
     fig.update_layout(xaxis_title="State")
     return fig
 
-# ---------- 51 ----------
+
 def fig_51_ps_efficiency_electors_vs_voters_scatter(state_agg: pd.DataFrame) -> go.Figure:
     eff = state_agg.copy()
     fig = px.scatter(
@@ -1489,7 +1468,7 @@ def fig_51_ps_efficiency_electors_vs_voters_scatter(state_agg: pd.DataFrame) -> 
     fig.add_shape(type="line", x0=x_min, y0=x_min, x1=x_max, y1=x_max, line=dict(width=1, dash="dot"))
     return fig
 
-# ---------- 52 ----------
+
 def fig_52_pc_contestants_per_ps_vs_vtr_scatter(df: pd.DataFrame) -> go.Figure:
     fig = px.scatter(
         df, x="ContestantsPerPS", y="VTR_frac",
@@ -1502,7 +1481,7 @@ def fig_52_pc_contestants_per_ps_vs_vtr_scatter(df: pd.DataFrame) -> go.Figure:
     fig.update_xaxes(title="Contestants per PS")
     return fig
 
-# ---------- 53 ----------
+
 def fig_53_pc_fd_rate_vs_vtr_scatter(df: pd.DataFrame) -> go.Figure:
     fig = px.scatter(
         df, x="VTR_frac", y="FD_Rate",
@@ -1515,7 +1494,7 @@ def fig_53_pc_fd_rate_vs_vtr_scatter(df: pd.DataFrame) -> go.Figure:
     fig.update_yaxes(tickformat=".0%", title="FD / Contestants")
     return fig
 
-# ---------- 54 ----------
+
 def fig_54_state_funnel_nominations_contestants_fd_dropdown(state_agg: pd.DataFrame) -> go.Figure:
     steps = ["Nominations","Contestants","FD"]
     fun_frames = {st: [row[s] for s in steps] for st, row in state_agg.set_index("State").iterrows()}
@@ -1535,7 +1514,7 @@ def fig_54_state_funnel_nominations_contestants_fd_dropdown(state_agg: pd.DataFr
     )
     return fig
 
-# ---------- 55 ----------
+
 def fig_55_treemap_electors_state_pc_color_vtr(df: pd.DataFrame) -> go.Figure:
     fig = px.treemap(
         df,
@@ -1549,7 +1528,7 @@ def fig_55_treemap_electors_state_pc_color_vtr(df: pd.DataFrame) -> go.Figure:
     fig.update_coloraxes(colorbar_title="VTR")
     return fig
 
-# ---------- 56 ----------
+
 def fig_56_pareto_fd_by_state(state_agg: pd.DataFrame) -> go.Figure:
     pareto = state_agg.sort_values("FD", ascending=False).copy()
     pareto["CumShare"] = pareto["FD"].cumsum() / pareto["FD"].sum()
@@ -1565,7 +1544,7 @@ def fig_56_pareto_fd_by_state(state_agg: pd.DataFrame) -> go.Figure:
     )
     return fig
 
-# ---------- 57 ----------
+
 def fig_57_state_metric_zscore_heatmap(state_agg: pd.DataFrame) -> go.Figure:
     finger = state_agg[[
         "State","WeightedVTR","FD_Rate_w","ElectorsPerPS_w","VotersPerPS_w","Nom_to_Cont_Ratio_w"
@@ -1584,7 +1563,7 @@ def fig_57_state_metric_zscore_heatmap(state_agg: pd.DataFrame) -> go.Figure:
     )
     return fig
 
-# ---------- 58 ----------
+
 def fig_58_dumbbell_electors_vs_voters_by_state(state_agg: pd.DataFrame) -> go.Figure:
     db = state_agg.sort_values("Electors", ascending=True).copy()
     y = db["State"]
@@ -1605,7 +1584,7 @@ def fig_58_dumbbell_electors_vs_voters_by_state(state_agg: pd.DataFrame) -> go.F
     )
     return fig
 
-# ---------- 59 ----------
+
 def fig_59_nominations_vs_vtr_pc_colored_fd_rate(df: pd.DataFrame) -> go.Figure:
     fig = px.scatter(
         df, x="Nominations", y="VTR_frac",
@@ -1618,7 +1597,7 @@ def fig_59_nominations_vs_vtr_pc_colored_fd_rate(df: pd.DataFrame) -> go.Figure:
     fig.update_yaxes(tickformat=".0%", title="VTR")
     return fig
 
-# ---------- 60 ----------
+
 def fig_60_violin_turnout_top6_bottom6(df: pd.DataFrame, state_agg: pd.DataFrame) -> go.Figure:
     rank = state_agg.sort_values("WeightedVTR", ascending=False).copy()
     top6 = rank.head(6)["State"].tolist()
@@ -1634,10 +1613,7 @@ def fig_60_violin_turnout_top6_bottom6(df: pd.DataFrame, state_agg: pd.DataFrame
     fig.update_yaxes(tickformat=".0%", title="VTR")
     return fig
 
-# -----------------------------
-# CSV "7.csv" — State scatter-maps + PC FD & histograms
-# Figures 61–68
-# -----------------------------
+# CSV "7.csv"
 
 # -- Helper: attach India state centroids (approx) for scatter_geo maps --
 def _india_state_centroids_df() -> pd.DataFrame:
@@ -1687,7 +1663,7 @@ def attach_india_centroids(state_agg: pd.DataFrame) -> pd.DataFrame:
     out = state_agg.merge(cent, on="State", how="left")
     return out
 
-# ---------- 61 ----------
+
 def fig_61_map_nom_to_cont_ratio_scatter(state_agg_with_geo: pd.DataFrame) -> go.Figure:
     """India scatter map — Nominated/Contestant Ratio (weighted) at state level."""
     fig = px.scatter_geo(
@@ -1704,7 +1680,7 @@ def fig_61_map_nom_to_cont_ratio_scatter(state_agg_with_geo: pd.DataFrame) -> go
     ))
     return fig
 
-# ---------- 62 ----------
+
 def fig_62_map_raw_contestants_scatter(state_agg_with_geo: pd.DataFrame) -> go.Figure:
     """India scatter map — Raw contestants (state totals)."""
     fig = px.scatter_geo(
@@ -1721,7 +1697,7 @@ def fig_62_map_raw_contestants_scatter(state_agg_with_geo: pd.DataFrame) -> go.F
     ))
     return fig
 
-# ---------- 63 ----------
+
 def fig_63_map_weighted_vtr_scatter(state_agg_with_geo: pd.DataFrame) -> go.Figure:
     """India scatter map — Weighted VTR (bubble = Electors)."""
     fig = px.scatter_geo(
@@ -1738,7 +1714,7 @@ def fig_63_map_weighted_vtr_scatter(state_agg_with_geo: pd.DataFrame) -> go.Figu
     ))
     return fig
 
-# ---------- 64 ----------
+
 def fig_64_pc_top_fd_bar(df7: pd.DataFrame, topN: int = 30) -> go.Figure:
     """Top-N PCs by FD (count)."""
     top_fd = df7.sort_values("FD", ascending=False).head(topN)
@@ -1751,7 +1727,7 @@ def fig_64_pc_top_fd_bar(df7: pd.DataFrame, topN: int = 30) -> go.Figure:
     )
     return fig
 
-# ---------- 65 ----------
+
 def fig_65_pc_top_fd_rate_bar(df7: pd.DataFrame, min_cont: int = 10, topN: int = 30) -> go.Figure:
     """Top-N PCs by FD Rate (filter min contestants to avoid tiny denominators)."""
     d = df7[df7["Contestants"] >= min_cont].copy()
@@ -1766,7 +1742,7 @@ def fig_65_pc_top_fd_rate_bar(df7: pd.DataFrame, min_cont: int = 10, topN: int =
     fig.update_xaxes(tickformat=".0%")
     return fig
 
-# ---------- 66 ----------
+
 def fig_66_pc_contestants_vs_fd_scatter(df7: pd.DataFrame) -> go.Figure:
     """PC-level relationship: Contestants vs FD (bubble = Electors)."""
     fig = px.scatter(
@@ -1778,12 +1754,17 @@ def fig_66_pc_contestants_vs_fd_scatter(df7: pd.DataFrame) -> go.Figure:
     )
     return fig
 
-# ---------- 67 ----------
+
 def fig_67_hist_nonforfeiting_candidates(df7: pd.DataFrame) -> go.Figure:
     """
     Histogram of Non-Forfeiting candidates = Contestants − FD (PC-level),
     annotated with quick inference stats.
     """
+    # Ensure NonForfeiting is calculated if not present
+    if "NonForfeiting" not in df7.columns:
+        df7 = df7.copy()
+        df7["NonForfeiting"] = df7["Contestants"] - df7["FD"]
+        
     share_majority_forfeit = (df7["FD"] > df7["NonForfeiting"]).mean()
     very_low_nonforf_share = (df7["NonForfeiting"] <= 2).mean()
 
@@ -1804,9 +1785,14 @@ def fig_67_hist_nonforfeiting_candidates(df7: pd.DataFrame) -> go.Figure:
     )
     return fig
 
-# ---------- 68 ----------
+
 def fig_68_density_nonforfeiting_vs_vtr(df7: pd.DataFrame) -> go.Figure:
     """2D density: Non-Forfeiting vs VTR (PC-level)."""
+    # Ensure NonForfeiting is calculated if not present
+    if "NonForfeiting" not in df7.columns:
+        df7 = df7.copy()
+        df7["NonForfeiting"] = df7["Contestants"] - df7["FD"]
+        
     fig = px.density_heatmap(
         df7, x="NonForfeiting", y="VTR_frac",
         nbinsx=30, nbinsy=20, color_continuous_scale="Viridis",
@@ -1816,13 +1802,7 @@ def fig_68_density_nonforfeiting_vs_vtr(df7: pd.DataFrame) -> go.Figure:
     fig.update_yaxes(tickformat=".0%", title="VTR")
     return fig
 
-# -----------------------------
 # CSV "8.csv" — Candidate distribution by state/UT
-# Figures 69–72
-# -----------------------------
-import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
 
 def load_candidate_distribution_csv8(path: str = "8.csv"):
     """
@@ -1903,7 +1883,7 @@ def load_candidate_distribution_csv8(path: str = "8.csv"):
 
     return df, df_long, geo_df
 
-# ---------- 69 ----------
+
 def fig_69_candidate_bucket_distribution_stackedbar(df_long: pd.DataFrame) -> go.Figure:
     """
     Stacked distribution of constituencies by candidate-count buckets, per State/UT.
@@ -1921,7 +1901,7 @@ def fig_69_candidate_bucket_distribution_stackedbar(df_long: pd.DataFrame) -> go
     fig.update_layout(barmode="stack", height=900)
     return fig
 
-# ---------- 70 ----------
+
 def fig_70_avg_candidates_ranking_bar(df: pd.DataFrame) -> go.Figure:
     """
     Ranking of States/UTs by average candidates per constituency.
@@ -1940,7 +1920,7 @@ def fig_70_avg_candidates_ranking_bar(df: pd.DataFrame) -> go.Figure:
     fig.update_layout(height=900)
     return fig
 
-# ---------- 71 ----------
+
 def fig_71_avg_vs_max_candidates_scatter(df: pd.DataFrame) -> go.Figure:
     """
     Avg vs Max candidates (bubble = total candidates).
@@ -1956,7 +1936,6 @@ def fig_71_avg_vs_max_candidates_scatter(df: pd.DataFrame) -> go.Figure:
         title="Avg vs Max Candidates — Bubble ~ Total Candidates",
         template="plotly_dark",
     )
-    # Light annotation hint (optional; safe even if state mix differs)
     fig.add_annotation(
         xref="x", yref="y",
         x=df["Avg Candidates In a Constituency"].max()*0.8,
@@ -1966,7 +1945,7 @@ def fig_71_avg_vs_max_candidates_scatter(df: pd.DataFrame) -> go.Figure:
     )
     return fig
 
-# ---------- 72 ----------
+
 def fig_72_total_candidates_bubble_map(geo_df: pd.DataFrame) -> go.Figure:
     """
     India bubble map — bubble size: Total Candidates; color: Avg Candidates.
@@ -1984,5 +1963,110 @@ def fig_72_total_candidates_bubble_map(geo_df: pd.DataFrame) -> go.Figure:
     )
     fig.update_layout(
         geo=dict(center=dict(lat=22, lon=79), lataxis_range=[6,36], lonaxis_range=[68,98])
+    )
+    return fig
+
+
+# CSV "LokSabhaAssetComparison.csv" — Candidate Asset Changes
+
+def clean_asset_comparison_value(s: str | float | None) -> float:
+    """Helper to clean 'Rs 1,23,4561 Crore+' style strings to numeric."""
+    if s is None or pd.isna(s):
+        return np.nan
+    
+    s = str(s)
+    # This regex removes the summary part (e.g., "272 Crore+")
+    s_cleaned = re.sub(r'\d+\s*(?:Crore|Lakh|Thousand)\+.*$', '', s, flags=re.IGNORECASE)
+    s_cleaned = s_cleaned.replace('Rs', '').replace(',', '').strip()
+    
+    return pd.to_numeric(s_cleaned, errors='coerce')
+
+def load_asset_comparison_csv(csv_path):
+    """
+    Loads and cleans asset columns,
+    and derives labels.
+    Returns:
+      - df_assets: Cleaned DataFrame with asset changes.
+    """
+    try:
+        df = pd.read_csv(csv_path)
+    except FileNotFoundError:
+        print(f"Error: File not found at {csv_path}")
+        return pd.DataFrame()
+
+    # Clean asset increase
+    df.dropna(subset=['Asset Increase', 'Name (Party)'], inplace=True)
+    df['Asset_Increase_Num'] = df['Asset Increase'].apply(clean_asset_comparison_value)
+    
+    # Clean asset values for 2024 and 2019 (for potential future plots)
+    if 'Total Assets in Lok Sabha 2024' in df.columns:
+        df['Assets_2024_Num'] = df['Total Assets in Lok Sabha 2024'].apply(clean_asset_comparison_value)
+    if 'Total Assets in Lok Sabha 2019' in df.columns:
+        df['Assets_2019_Num'] = df['Total Assets in Lok Sabha 2019'].apply(clean_asset_comparison_value)
+
+    # Extract Candidate Name and Party
+    df_extracted = df['Name (Party)'].str.extract(r'^(.*?)\s*\((.*?)\)$')
+    if df_extracted is not None and not df_extracted.empty:
+        df['Candidate_Name'] = df_extracted[0]
+        df['Party'] = df_extracted[1]
+        df['Name_Party_Label'] = df['Candidate_Name'].fillna('') + ' (' + df['Party'].fillna('') + ')'
+    else:
+        df['Name_Party_Label'] = df['Name (Party)']
+
+    df_assets = df.dropna(subset=['Asset_Increase_Num', 'Name_Party_Label']).copy()
+
+    return df_assets.reset_index(drop=True)
+
+
+def fig_73_asset_increase_decrease_bar(df_assets: pd.DataFrame, top_n: int = 10) -> go.Figure:
+    """
+    Horizontal bar: Top-N asset increases and Top-N asset decreases (losses).
+    Uses a transformed 'symlog'-style axis to handle large value range and negatives.
+    """
+    if df_assets.empty:
+        return go.Figure().update_layout(title=f"Top {top_n} Asset Increases & Decreases (No Data)", template="plotly_dark")
+        
+    df_sorted = df_assets.sort_values('Asset_Increase_Num', ascending=True)
+
+    df_bottom = df_sorted.head(top_n)
+    df_top = df_sorted.tail(top_n)
+
+    df_plot = pd.concat([df_bottom, df_top])
+
+    # Apply Manual 'symlog' Transformation
+    df_plot['Asset_Increase_Transformed'] = np.sign(df_plot['Asset_Increase_Num']) * np.log10(np.abs(df_plot['Asset_Increase_Num']) + 1)
+    df_plot['Color'] = ['#2ca02c' if x > 0 else '#d62728' for x in df_plot['Asset_Increase_Num']]
+    
+    df_plot = df_plot.sort_values('Asset_Increase_Num', ascending=True)
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Bar(
+        x=df_plot['Asset_Increase_Transformed'],
+        y=df_plot['Name_Party_Label'],
+        customdata=df_plot['Asset_Increase_Num'],
+        orientation='h',
+        marker_color=df_plot['Color'],
+        hovertemplate='<b>%{y}</b><br>Asset Increase: %{customdata:,.0f} Rs<extra></extra>'
+    ))
+
+    fig.update_layout(
+        title=f'Top {top_n} Asset Increases & Decreases (Transformed Scale)',
+        xaxis_title='Asset Increase (Transformed Log Scale)',
+        yaxis_title='Candidate (Party)',
+        template='plotly_dark',
+        xaxis_type='linear',
+        
+        yaxis={'categoryorder':'array', 'categoryarray': df_plot['Name_Party_Label']},
+        
+        shapes=[
+            go.layout.Shape(
+                type="line",
+                yref="paper", y0=0, x0=0, y1=1, x1=0, # Vertical line at 0
+                line=dict(color="gray", width=2, dash="dot")
+            )
+        ],
+        height=700,
+        margin=dict(l=350, b=100) # Left margin for long labels
     )
     return fig
