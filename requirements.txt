@@ -1,0 +1,12 @@
+dash
+dash-bootstrap-components
+plotly
+pandas
+numpy
+matplotlib
+geopandas
+shapely
+pyproj
+fiona
+rtree
+jsonschema

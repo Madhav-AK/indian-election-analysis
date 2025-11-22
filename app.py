@@ -521,4 +521,4 @@ footer = html.Div(
 app.layout = dbc.Container([header, tabs, footer], fluid=True, className="px-4")
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False)
