@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>India Elections — Executive Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #0e0e0f;
+            color: #e6e6e9;
+            overflow-x: hidden;
+        }
+        .navbar-dark {
+            background-color: #0b0b0c !important;
+        }
+        .section-title {
+            color: #fff; 
+            font-weight: 800; 
+            margin-top: 12px; 
+            margin-bottom: 3px;
+        }
+        .section-subtitle {
+            color: #c0c3c7; 
+            font-size: .95rem;
+            margin-bottom: 8px;
+        }
+        .section-divider {
+            border-top: 2px solid #202226;
+            margin-top: 6px;
+            margin-bottom: 20px;
+        }
+        .card-dark {
+            background-color: #151518;
+            border: 1px solid #1e1e1f;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+        iframe {
+            width: 100%;
+            height: 520px;
+            border: none;
+            border-radius: 8px;
+            background-color: #111;
+        }
+        .tab-pane {
+            padding-top: 20px;
+        }
+        .subsection-title {
+            color: #e2e5ea;
+            font-weight: 700;
+            margin-top: 18px;
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- Navbar ------------------------------------------------------>
+<nav class="navbar navbar-dark navbar-expand-lg sticky-top">
+    <div class="container-fluid">
+        <span style="font-size: 26px; margin-right: 10px;">🗳️</span>
+        <a class="navbar-brand" href="#">India Elections — Executive Dashboard</a>
+    </div>
+</nav>
+
+
+<div class="container-fluid px-4">
+
+<!-- Tabs -------------------------------------------------------->
+<ul class="nav nav-tabs mt-4" id="mainTabs" role="tablist">
+    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#overview">Overview</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#women">Women in Elections</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#results">Constituency & Results</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#nom">Nominations & Process</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#turnout">Turnout & States</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#dist">Candidate Distribution</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#assets">Assets of Candidates</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#cool">Experimental / Cool</a></li>
+</ul>
+
+
+<div class="tab-content">
+
+<!-- ============================================================
+     TAB 1 — OVERVIEW
+=================================================================-->
+<div class="tab-pane fade show active" id="overview">
+
+    <h2 class="section-title">Overview & Highlights</h2>
+    <p class="section-subtitle">Electors, turnout, and share patterns</p>
+    <hr class="section-divider">
+
+
+    <h3 class="subsection-title">Core totals & rates</h3>
+    <div class="row">
+        <div class="col-md-6 card-dark">
+            <iframe src="all_plots_html/1-top-10-states-uts-by-total-electors.html"></iframe>
+        </div>
+        <div class="col-md-6 card-dark">
+            <iframe src="all_plots_html/2-top-10-states-uts-by-total-turnout-pct.html"></iframe>
+        </div>
+    </div>
+
+    <h3 class="subsection-title">Turnout maps</h3>
+    <div class="row">
+        <div class="col-md-6 card-dark">
+            <img src="all_maps_png/voter-turnout-map.png" style="width:100%; border-radius:8px;">
+        </div>
+        <div class="col-md-6 card-dark">
+            <img src="all_maps_png/voter-deviation-map.png" style="width:100%; border-radius:8px;">
+        </div>
+    </div>
+
+    <h3 class="subsection-title">Comparative slices</h3>
+    <div class="row">
+        <div class="col-md-6 card-dark">
+            <iframe src="all_plots_html/6-states-where-womens-turnout-higher.html"></iframe>
+        </div>
+        <div class="col-md-6 card-dark">
+            <iframe src="all_plots_html/9-turnout-vs-total-electors-bubble.html"></iframe>
+        </div>
+    </div>
+
+    <h3 class="subsection-title">Shares & composition</h3>
+    <div class="row">
+        <div class="col-md-6 card-dark">
+            <iframe src="all_plots_html/7-women-electorate-vs-votes.html"></iframe>
+        </div>
+        <div class="col-md-6 card-dark">
+            <iframe src="all_plots_html/8-pie-share-total-votes.html"></iframe>
+        </div>
+    </div>
+
+</div> <!-- END OVERVIEW -->
+
+
+<!-- ============================================================
+     TAB 2 — WOMEN
+=================================================================-->
+<div class="tab-pane fade" id="women">
+
+    <h2 class="section-title">Women in Elections</h2>
+    <p class="section-subtitle">Candidates, outcomes, and rate diagnostics</p>
+    <hr class="section-divider">
+
+    <h3 class="subsection-title">Top-line outcomes</h3>
+    <div class="row">
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/11-top-10-women-contestants.html"></iframe></div>
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/12-top-10-women-elected.html"></iframe></div>
+    </div>
+
+    <h3 class="subsection-title">Rates & risks</h3>
+    <div class="row">
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/15-women-success-rate.html"></iframe></div>
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/16-women-forfeiture-rate.html"></iframe></div>
+    </div>
+
+    <h3 class="subsection-title">Structure & relation</h3>
+    <div class="row">
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/14-total-women-elected-by-type.html"></iframe></div>
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/17-contestants-vs-elected.html"></iframe></div>
+    </div>
+
+    <h3 class="subsection-title">Vote share profile</h3>
+    <div class="row">
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/32-vote-share-by-gender.html"></iframe></div>
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     TAB 3 — RESULTS
+=================================================================-->
+<div class="tab-pane fade" id="results">
+
+    <h2 class="section-title">Constituency & Results</h2>
+    <p class="section-subtitle">Ages, performance, and composition</p>
+    <hr class="section-divider">
+
+    <h3 class="subsection-title">Age distributions</h3>
+    <div class="row">
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/26-winner-age-by-party.html"></iframe></div>
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/31-candidate-age-violin.html"></iframe></div>
+    </div>
+
+    <h3 class="subsection-title">Result geography</h3>
+    <div class="row">
+        <div class="col-md-6 card-dark"><img src="all_maps_png/alliance-map.png" style="width:100%; border-radius:8px;"></div>
+        <div class="col-md-6 card-dark"><img src="all_maps_png/victory-margin-map.png" style="width:100%; border-radius:8px;"></div>
+    </div>
+</div>
+
+
+<!-- ============================================================
+     TAB 4 — NOMINATIONS
+=================================================================-->
+<div class="tab-pane fade" id="nom">
+
+    <h2 class="section-title">Nominations & Pipeline</h2>
+    <p class="section-subtitle">Filings, withdrawals, and gaps</p>
+    <hr class="section-divider">
+
+    <h3 class="subsection-title">Heatmap & flow</h3>
+    <div class="row">
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/37-rejection-rate-heatmap.html"></iframe></div>
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/39-nomination-flow-sankey.html"></iframe></div>
+    </div>
+
+    <h3 class="subsection-title">Gap & spread</h3>
+    <div class="row">
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/40-contestants-per-seat.html"></iframe></div>
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/48-withdrawn-rate-strip.html"></iframe></div>
+    </div>
+
+    <h3 class="subsection-title">Leaderboards & gaps</h3>
+    <div class="row">
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/42-state-leaderboard-rejection.html"></iframe></div>
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/46-gender-gap-contesting.html"></iframe></div>
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     TAB 5 — TURNOUT
+=================================================================-->
+<div class="tab-pane fade" id="turnout">
+
+    <h2 class="section-title">Turnout & State Comparisons</h2>
+    <p class="section-subtitle">Rankings, funnels, correlations</p>
+    <hr class="section-divider">
+
+    <h3 class="subsection-title">Rank & funnel</h3>
+    <div class="row">
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/49-turnout-weighted-leaderboard.html"></iframe></div>
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/54-state-funnel.html"></iframe></div>
+    </div>
+
+    <h3 class="subsection-title">Correlations & spreads</h3>
+    <div class="row">
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/59-nominations-vs-turnout.html"></iframe></div>
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/60-turnout-violins.html"></iframe></div>
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     TAB 6 — DISTRIBUTION
+=================================================================-->
+<div class="tab-pane fade" id="dist">
+
+    <h2 class="section-title">Candidate Distribution</h2>
+    <p class="section-subtitle">Counts & rankings</p>
+    <hr class="section-divider">
+
+    <div class="row">
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/69-candidate-bucket-distribution.html"></iframe></div>
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/70-avg-candidates-ranking.html"></iframe></div>
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     TAB 7 — ASSETS
+=================================================================-->
+<div class="tab-pane fade" id="assets">
+
+    <h2 class="section-title">Assets of Candidates</h2>
+    <p class="section-subtitle">Wealth changes & trends</p>
+    <hr class="section-divider">
+
+    <div class="row">
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/73-assets-increase-decrease.html"></iframe></div>
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     TAB 8 — EXPERIMENTAL
+=================================================================-->
+<div class="tab-pane fade" id="cool">
+
+    <h2 class="section-title">Experimental / Cool Figures</h2>
+    <hr class="section-divider">
+
+    <div class="row">
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/21-winner-profile-5d.html"></iframe></div>
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/22-parallel-coords.html"></iframe></div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/23-3d-turnout-age-margin.html"></iframe></div>
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/25-splom-winner-metrics.html"></iframe></div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/24-treemap-party-state-category.html"></iframe></div>
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/29-margin-turnout-density.html"></iframe></div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/43-dumbbell-filed-to-contesting.html"></iframe></div>
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/50-pc-turnout-distributions.html"></iframe></div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/52-contestants-per-ps-vs-vtr.html"></iframe></div>
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/53-fd-rate-vs-vtr.html"></iframe></div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/55-treemap-electors.html"></iframe></div>
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/71-avg-vs-max-candidates.html"></iframe></div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 card-dark"><iframe src="all_plots_html/34-candidate-sunburst.html"></iframe></div>
+        <div class="col-md-6 card-dark"><img src="all_maps_png/nota-map.png" style="width:100%; border-radius:8px;"></div>
+    </div>
+
+</div>
+
+</div> <!-- END TAB CONTENT -->
+
+
+<br><hr class="section-divider">
+<p class="text-muted text-center" style="font-size:.9rem;">Indian Election Dashboard — Static HTML Version</p>
+
+</div> <!-- END CONTAINER -->
+
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>
